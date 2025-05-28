@@ -37,6 +37,8 @@ import { after } from 'next/server';
 import type { Chat } from '@/lib/db/schema';
 import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
+import { getDatabaseSchema } from '@/lib/ai/tools/get-database-schema';
+import { getTableSchema } from '@/lib/ai/tools/get-table-schema';
 
 export const maxDuration = 60;
 
@@ -152,7 +154,9 @@ export async function POST(request: Request) {
           'createDocument', 
           'updateDocument',
           'requestSuggestions',
-          'executeSql'
+          'executeSql',
+          'getDatabaseSchema',
+          'getTableSchema'
         ]);
         
         const result = streamText({
@@ -171,6 +175,8 @@ export async function POST(request: Request) {
               dataStream,
             }),
             executeSql: executeSql({ session }),
+            getDatabaseSchema: getDatabaseSchema({ session }),
+            getTableSchema: getTableSchema({ session }),
           },
           onStepFinish: ({ stepType, toolCalls, toolResults }) => {
             if (toolCalls && toolCalls.length > 0) {

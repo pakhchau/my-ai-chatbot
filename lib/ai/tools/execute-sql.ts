@@ -18,7 +18,7 @@ const ALLOWED_OPERATIONS = [
 
 // Define restricted tables/operations for security
 const RESTRICTED_TABLES = [
-  'User', // Protect user authentication data
+  // 'User', // Allow access to User table now
   'pg_', // Protect PostgreSQL system tables
   'information_schema' // Protect schema information
 ];
@@ -82,12 +82,15 @@ export function executeSql({ session }: { session: Session }) {
     - CREATE/DROP INDEX: Manage database indexes
     
     SECURITY RESTRICTIONS:
-    - Cannot access User table (authentication data protected)
     - Cannot access system tables (pg_*, information_schema)
     - SQL injection patterns are blocked
     - Only specific operations are allowed
     
+    IMPORTANT:
+    - When referencing the user ID column in the Task table, ALWAYS use "userId" (with quotes and camelCase)
+    
     AVAILABLE TABLES:
+    - User: User authentication and profile data (now accessible)
     - Chat: User conversations
     - Task: User tasks and todos
     - AITrigger: Automated AI triggers
@@ -98,10 +101,10 @@ export function executeSql({ session }: { session: Session }) {
     - Stream: Chat streams
     
     EXAMPLES:
-    - "SELECT * FROM Task WHERE userId = 'user-id' ORDER BY createdAt DESC"
-    - "INSERT INTO Task (userId, title, description, status) VALUES ('user-id', 'New Task', 'Description', 'pending')"
-    - "UPDATE Task SET status = 'completed' WHERE id = 'task-id'"
-    - "SELECT COUNT(*) FROM Chat WHERE userId = 'user-id'"`,
+    - "SELECT * FROM Task WHERE \"userId\" = 'user-id' ORDER BY createdAt DESC"
+    - "INSERT INTO Task (\"userId\", title, description, status) VALUES ('user-id', 'New Task', 'Description', 'pending')"
+    - "UPDATE Task SET status = 'completed' WHERE id = 'task-id' AND \"userId\" = 'user-id'"
+    - "SELECT COUNT(*) FROM Chat WHERE \"userId\" = 'user-id'"`,
     
     parameters: z.object({
       query: z.string().describe('The SQL query to execute'),

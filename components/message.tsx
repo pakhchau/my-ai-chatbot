@@ -19,6 +19,12 @@ import { MessageEditor } from './message-editor';
 import { DocumentPreview } from './document-preview';
 import { MessageReasoning } from './message-reasoning';
 import type { UseChatHelpers } from '@ai-sdk/react';
+import {
+  Accordion,
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from "./ui/accordion";
 
 const PurePreviewMessage = ({
   chatId,
@@ -198,23 +204,37 @@ const PurePreviewMessage = ({
                       ) : toolName === 'createDocument' ? (
                         <DocumentPreview
                           isReadonly={isReadonly}
-                          result={result}
+                          args={result}
                         />
-                      ) : toolName === 'updateDocument' ? (
-                        <DocumentToolResult
-                          type="update"
-                          result={result}
-                          isReadonly={isReadonly}
-                        />
-                      ) : toolName === 'requestSuggestions' ? (
-                        <DocumentToolResult
-                          type="request-suggestions"
-                          result={result}
-                          isReadonly={isReadonly}
-                        />
-                      ) : (
-                        <pre>{JSON.stringify(result, null, 2)}</pre>
-                      )}
+                      ) : toolName === 'executeSql' ? (
+                        <Accordion type="single" collapsible>
+                          <AccordionItem value={`sql-result-${toolCallId}`}>
+                            <AccordionTrigger>
+                              <span>
+                                Database Query Result ({result.queryType}) — {result.executionTime}
+                              </span>
+                            </AccordionTrigger>
+                            <AccordionContent>
+                              <div className="mb-2">
+                                <span className="font-medium">Query:</span>
+                                <pre className="bg-zinc-50 dark:bg-zinc-800 rounded p-2 text-xs overflow-x-auto border mt-1">
+                                  {result.query}
+                                </pre>
+                              </div>
+                              <div className="mb-2">
+                                <span className="font-medium">Data:</span>
+                                <pre className="bg-zinc-50 dark:bg-zinc-800 rounded p-2 text-xs overflow-x-auto border mt-1">
+                                  {JSON.stringify(result.data, null, 2)}
+                                </pre>
+                              </div>
+                              <div className="flex flex-wrap gap-4 text-xs text-zinc-500 mt-2">
+                                <div>Rows: {result.data?.rowCount}</div>
+                                <div>Timestamp: {new Date(result.timestamp).toLocaleString()}</div>
+                              </div>
+                            </AccordionContent>
+                          </AccordionItem>
+                        </Accordion>
+                      ) : null}
                     </div>
                   );
                 }

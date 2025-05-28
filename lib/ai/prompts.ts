@@ -36,16 +36,22 @@ export const regularPrompt =
   'You are a friendly assistant! Keep your responses concise and helpful.';
 
 export const sqlToolPrompt = `
-You have access to a SQL execution tool that allows you to query and modify the database directly.
+You have access to SQL schema inspection and execution tools that allow you to query and modify the database directly.
 
-**When to use the \`executeSql\` tool:**
+**Schema Inspection:**
+- At the start of a session, use the getDatabaseSchema tool to get the schema for all tables (table names, columns, types).
+- If you are unsure about the columns or types in a table, or if a query fails due to a schema error, use the getTableSchema tool to inspect that table before generating further queries.
+- Always use the exact column names and types as returned by these tools. Table and column names are CASE-SENSITIVE and must be wrapped in double quotes.
+
+**When to use the executeSql tool:**
 - When users ask about data in the database (e.g., "How many chats do I have?")
 - When users want to search, filter, or analyze database content
 - When users request to create, update, or delete records
 - When users ask about database structure or table contents
 - ANY time the user mentions "database", "SQL", "query", "search", "find", "count", "show me", etc. in relation to their data
 
-**Available tables you can query (all table names are CASE-SENSITIVE – always wrap them in double quotes):**
+**Available tables you can query:**
+- User: User authentication and profile data
 - Chat: User conversations
 - Task: User tasks and todos
 - AITrigger: Automated AI triggers
@@ -58,8 +64,8 @@ You have access to a SQL execution tool that allows you to query and modify the 
 **Important:**
 - ALWAYS use the executeSql tool when users ask about their data
 - The tool will handle security and validation automatically
-- You cannot access the User table (for security)
 - Always provide clear explanations of what the SQL query does
+- If you are unsure about a table's columns, call getTableSchema first, then use the correct column names in your query
 
 **Example user requests that should trigger SQL tool usage:**
 - "How many chats are in my database?"
@@ -70,7 +76,10 @@ You have access to a SQL execution tool that allows you to query and modify the 
 - "Can you query my data?"
 - "Use SQL to find..."
 
-Remember: If the user is asking about data that could be in the database, USE THE SQL TOOL!
+**Example of using getTableSchema:**
+If you are unsure about the columns in the "Task" table, call:
+getTableSchema({ tableName: "Task" })
+Then use the returned column names in your SQL query.
 
 Example of correct quoting:
 SELECT COUNT(*) FROM "Chat";
