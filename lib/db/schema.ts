@@ -1,4 +1,4 @@
-import type { InferSelectModel } from 'drizzle-orm';
+import type { InferSelectModel, InferInsertModel } from 'drizzle-orm';
 import {
   pgTable,
   varchar,
@@ -168,3 +168,35 @@ export const stream = pgTable(
 );
 
 export type Stream = InferSelectModel<typeof stream>;
+
+export const task = pgTable('Task', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  title: text('title').notNull(),
+  description: text('description'),
+  dueDate: timestamp('dueDate'),
+  priority: varchar('priority', { length: 20 }).default('medium'),
+  status: varchar('status', { length: 20 }).default('pending'),
+  createdAt: timestamp('createdAt').notNull(),
+});
+
+export const aiTrigger = pgTable('AITrigger', {
+  id: uuid('id').primaryKey().defaultRandom(),
+  userId: uuid('userId')
+    .notNull()
+    .references(() => user.id),
+  taskId: uuid('taskId').references(() => task.id),
+  triggerType: varchar('triggerType', { length: 50 }).notNull(), // 'due_soon', 'overdue', 'reminder', 'completion_check'
+  triggerTime: timestamp('triggerTime').notNull(),
+  isExecuted: boolean('isExecuted').default(false),
+  message: text('message'), // Store the generated AI message
+  chatId: uuid('chatId').references(() => chat.id), // Link to created chat
+  createdAt: timestamp('createdAt').notNull(),
+});
+
+export type Task = InferSelectModel<typeof task>;
+export type NewTask = InferInsertModel<typeof task>;
+export type AITrigger = InferSelectModel<typeof aiTrigger>;
+export type NewAITrigger = InferInsertModel<typeof aiTrigger>;

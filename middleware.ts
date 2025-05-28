@@ -17,6 +17,13 @@ export async function middleware(request: NextRequest) {
     return NextResponse.next();
   }
 
+  // Allow our health check and proactive AI API endpoints without authentication
+  if (pathname.startsWith('/api/db-health') || 
+      pathname.startsWith('/api/test-proactive') ||
+      pathname.startsWith('/api/triggers/check')) {
+    return NextResponse.next();
+  }
+
   const token = await getToken({
     req: request,
     secret: process.env.AUTH_SECRET,

@@ -10,6 +10,7 @@ import {
   gte,
   inArray,
   lt,
+  lte,
   type SQL,
 } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
@@ -27,6 +28,8 @@ import {
   type DBMessage,
   type Chat,
   stream,
+  task,
+  aiTrigger,
 } from './schema';
 import type { ArtifactKind } from '@/components/artifact';
 import { generateUUID } from '../utils';
@@ -534,5 +537,171 @@ export async function getStreamIdsByChatId({ chatId }: { chatId: string }) {
       'bad_request:database',
       'Failed to get stream ids by chat id',
     );
+  }
+}
+
+// Task-related queries
+export async function createTask({
+  userId,
+  title,
+  description,
+  dueDate,
+  priority = 'medium',
+}: {
+  userId: string;
+  title: string;
+  description?: string;
+  dueDate?: Date;
+  priority?: string;
+}) {
+  try {
+    const [newTask] = await db
+      .insert(task)
+      .values({
+        userId,
+        title,
+        description,
+        dueDate,
+        priority,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return newTask;
+  } catch (error) {
+    console.error('Failed to create task:', error);
+    throw error;
+  }
+}
+
+export async function getTasksByUserId({ userId }: { userId: string }) {
+  try {
+    return await db
+      .select()
+      .from(task)
+      .where(eq(task.userId, userId))
+      .orderBy(desc(task.createdAt));
+  } catch (error) {
+    console.error('Failed to get tasks:', error);
+    throw error;
+  }
+}
+
+export async function updateTask({
+  id,
+  userId,
+  title,
+  description,
+  dueDate,
+  priority,
+  status,
+}: {
+  id: string;
+  userId: string;
+  title?: string;
+  description?: string;
+  dueDate?: Date;
+  priority?: string;
+  status?: string;
+}) {
+  try {
+    const [updatedTask] = await db
+      .update(task)
+      .set({
+        ...(title && { title }),
+        ...(description !== undefined && { description }),
+        ...(dueDate !== undefined && { dueDate }),
+        ...(priority && { priority }),
+        ...(status && { status }),
+      })
+      .where(and(eq(task.id, id), eq(task.userId, userId)))
+      .returning();
+
+    return updatedTask;
+  } catch (error) {
+    console.error('Failed to update task:', error);
+    throw error;
+  }
+}
+
+// AI Trigger-related queries
+export async function createAITrigger({
+  userId,
+  taskId,
+  triggerType,
+  triggerTime,
+  message,
+}: {
+  userId: string;
+  taskId?: string;
+  triggerType: string;
+  triggerTime: Date;
+  message?: string;
+}) {
+  try {
+    const [newTrigger] = await db
+      .insert(aiTrigger)
+      .values({
+        userId,
+        taskId,
+        triggerType,
+        triggerTime,
+        message,
+        createdAt: new Date(),
+      })
+      .returning();
+
+    return newTrigger;
+  } catch (error) {
+    console.error('Failed to create AI trigger:', error);
+    throw error;
+  }
+}
+
+export async function getPendingTriggers() {
+  try {
+    return await db
+      .select({
+        trigger: aiTrigger,
+        task: task,
+        user: user,
+      })
+      .from(aiTrigger)
+      .leftJoin(task, eq(aiTrigger.taskId, task.id))
+      .leftJoin(user, eq(aiTrigger.userId, user.id))
+      .where(
+        and(
+          eq(aiTrigger.isExecuted, false),
+          lte(aiTrigger.triggerTime, new Date())
+        )
+      )
+      .orderBy(aiTrigger.triggerTime);
+  } catch (error) {
+    console.error('Failed to get pending triggers:', error);
+    throw error;
+  }
+}
+
+export async function markTriggerExecuted({
+  id,
+  chatId,
+}: {
+  id: string;
+  chatId?: string;
+}) {
+  try {
+    const [updatedTrigger] = await db
+      .update(aiTrigger)
+      .set({
+        isExecuted: true,
+        ...(chatId && { chatId }),
+      })
+      .where(eq(aiTrigger.id, id))
+      .returning();
+
+    return updatedTrigger;
+  } catch (error) {
+    console.error('Failed to mark trigger as executed:', error);
+    throw error;
   }
 }
