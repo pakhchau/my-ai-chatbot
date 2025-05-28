@@ -11,6 +11,7 @@ import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import { Weather } from './weather';
+import { GeneratedTable } from './generated-table';
 import equal from 'fast-deep-equal';
 import { cn, sanitizeText } from '@/lib/utils';
 import { Button } from './ui/button';
@@ -206,6 +207,8 @@ const PurePreviewMessage = ({
                           isReadonly={isReadonly}
                           args={result}
                         />
+                      ) : toolName === 'generateTable' ? (
+                        <GeneratedTable config={result.config} />
                       ) : toolName === 'executeSql' ? (
                         <Accordion type="single" collapsible>
                           <AccordionItem value={`sql-result-${toolCallId}`}>

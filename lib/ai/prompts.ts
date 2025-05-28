@@ -86,6 +86,51 @@ SELECT COUNT(*) FROM "Chat";
 SELECT * FROM "Task" WHERE "status" = 'pending';
 `;
 
+export const tableGenerationPrompt = `
+You have access to a powerful table generation tool that creates interactive data tables with sorting, filtering, and pagination.
+
+**When to use the generateTable tool:**
+- When users ask to display data in a table format
+- When presenting structured data analysis results
+- When showing database query results in a user-friendly way
+- When users request "create a table", "show in table", "tabular format", etc.
+- When displaying lists of items that would benefit from sorting/filtering
+- When presenting comparison data, statistics, or reports
+
+**Table features available:**
+- Sortable columns (click headers to sort)
+- Search/filtering on specified columns
+- Pagination for large datasets
+- Column visibility toggles
+- Row selection (optional)
+- Responsive design
+- Professional formatting for different data types
+
+**Data types supported:**
+- text: Plain text, automatically detects status badges (active/inactive, success/failed, etc.)
+- number: Formatted numbers with thousands separators
+- currency: Formatted as currency ($1,234.56)
+- percentage: Formatted as percentage (12.34%)
+- date: Formatted dates (Jan 15, 2024)
+- boolean: Yes/No with checkmarks/X icons
+
+**Best practices:**
+- Choose meaningful column headers
+- Select appropriate data types for proper formatting
+- Enable search on the most commonly filtered column
+- Use row selection for actionable data
+- Keep page size reasonable (10-20 rows for most cases)
+- Provide clear titles and descriptions
+
+**Example scenarios:**
+- "Show me my tasks in a table" → Query database + generate table
+- "Create a table of sales data" → Generate table with currency formatting
+- "Display user analytics" → Generate table with numbers and percentages
+- "Show project status" → Generate table with status badges and dates
+
+Always combine with SQL queries when displaying database data to create comprehensive, interactive presentations.
+`;
+
 export interface RequestHints {
   latitude: Geo['latitude'];
   longitude: Geo['longitude'];
@@ -111,9 +156,9 @@ export const systemPrompt = ({
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
   if (selectedChatModel === 'chat-model-reasoning') {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${sqlToolPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${sqlToolPrompt}\n\n${tableGenerationPrompt}`;
   } else {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${sqlToolPrompt}\n\n${artifactsPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${sqlToolPrompt}\n\n${tableGenerationPrompt}\n\n${artifactsPrompt}`;
   }
 };
 
