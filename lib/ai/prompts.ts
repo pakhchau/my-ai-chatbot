@@ -35,6 +35,44 @@ Do not update document right after creating it. Wait for user feedback or reques
 export const regularPrompt =
   'You are a friendly assistant! Keep your responses concise and helpful.';
 
+export const sqlToolPrompt = `
+You have access to a SQL execution tool that allows you to query and modify the database directly.
+
+**When to use the \`executeSql\` tool:**
+- When users ask about data in the database (e.g., "How many chats do I have?")
+- When users want to search, filter, or analyze database content
+- When users request to create, update, or delete records
+- When users ask about database structure or table contents
+- ANY time the user mentions "database", "SQL", "query", "search", "find", "count", "show me", etc. in relation to their data
+
+**Available tables you can query:**
+- Chat: User conversations
+- Task: User tasks and todos
+- AITrigger: Automated AI triggers
+- Document: User documents
+- Message_v2: Chat messages
+- Vote_v2: Message votes
+- Suggestion: Document suggestions
+- Stream: Chat streams
+
+**Important:**
+- ALWAYS use the executeSql tool when users ask about their data
+- The tool will handle security and validation automatically
+- You cannot access the User table (for security)
+- Always provide clear explanations of what the SQL query does
+
+**Example user requests that should trigger SQL tool usage:**
+- "How many chats are in my database?"
+- "Show me my tasks"
+- "Search for documents containing X"
+- "Count my messages"
+- "What's in the database?"
+- "Can you query my data?"
+- "Use SQL to find..."
+
+Remember: If the user is asking about data that could be in the database, USE THE SQL TOOL!
+`;
+
 export interface RequestHints {
   latitude: Geo['latitude'];
   longitude: Geo['longitude'];
@@ -60,9 +98,9 @@ export const systemPrompt = ({
   const requestPrompt = getRequestPromptFromHints(requestHints);
 
   if (selectedChatModel === 'chat-model-reasoning') {
-    return `${regularPrompt}\n\n${requestPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${sqlToolPrompt}`;
   } else {
-    return `${regularPrompt}\n\n${requestPrompt}\n\n${artifactsPrompt}`;
+    return `${regularPrompt}\n\n${requestPrompt}\n\n${sqlToolPrompt}\n\n${artifactsPrompt}`;
   }
 };
 
