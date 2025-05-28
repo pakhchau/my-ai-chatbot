@@ -45,7 +45,7 @@ You have access to a SQL execution tool that allows you to query and modify the 
 - When users ask about database structure or table contents
 - ANY time the user mentions "database", "SQL", "query", "search", "find", "count", "show me", etc. in relation to their data
 
-**Available tables you can query:**
+**Available tables you can query (all table names are CASE-SENSITIVE – always wrap them in double quotes):**
 - Chat: User conversations
 - Task: User tasks and todos
 - AITrigger: Automated AI triggers
@@ -71,6 +71,10 @@ You have access to a SQL execution tool that allows you to query and modify the 
 - "Use SQL to find..."
 
 Remember: If the user is asking about data that could be in the database, USE THE SQL TOOL!
+
+Example of correct quoting:
+SELECT COUNT(*) FROM "Chat";
+SELECT * FROM "Task" WHERE "status" = 'pending';
 `;
 
 export interface RequestHints {
