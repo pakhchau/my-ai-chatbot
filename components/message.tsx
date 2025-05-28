@@ -223,7 +223,7 @@ const PurePreviewMessage = ({
                               </div>
                               <div className="mb-2">
                                 <span className="font-medium">Data:</span>
-                                <pre className="bg-zinc-50 dark:bg-zinc-800 rounded p-2 text-xs overflow-x-auto border mt-1">
+                                <pre className="bg-zinc-50 dark:bg-zinc-800 rounded p-2 text-xs overflow-x-auto overflow-y-auto max-h-48 border mt-1">
                                   {JSON.stringify(result.data, null, 2)}
                                 </pre>
                               </div>
