@@ -109,10 +109,16 @@ export function executeSql({ session }: { session: Session }) {
     }),
     
     execute: async ({ query, explanation }) => {
+      console.log('🔧 SQL TOOL CALLED!');
+      console.log('📝 Query:', query);
+      console.log('💭 Explanation:', explanation);
+      console.log('👤 User ID:', session.user?.id);
+      
       try {
         // Validate the SQL query
         const validation = validateSQLQuery(query);
         if (!validation.isValid) {
+          console.log('❌ SQL Validation Failed:', validation.error);
           return {
             success: false,
             error: `SQL validation failed: ${validation.error}`,
@@ -120,6 +126,8 @@ export function executeSql({ session }: { session: Session }) {
             explanation
           };
         }
+
+        console.log('✅ SQL Validation Passed');
 
         // Create database connection
         const client = postgres(process.env.POSTGRES_URL!, {
@@ -132,10 +140,12 @@ export function executeSql({ session }: { session: Session }) {
         const startTime = Date.now();
 
         try {
+          console.log('🔌 Executing SQL query...');
           // Execute the query
           result = await client.unsafe(query);
           
           const executionTime = Date.now() - startTime;
+          console.log(`⚡ Query executed in ${executionTime}ms`);
           
           // Close connection
           await client.end();
@@ -149,19 +159,22 @@ export function executeSql({ session }: { session: Session }) {
               rows: Array.isArray(result) ? result : [result],
               rowCount: Array.isArray(result) ? result.length : 1
             };
+            console.log(`📊 SELECT returned ${formattedResult.rowCount} rows`);
           } else if (queryType === 'INSERT' || queryType === 'UPDATE' || queryType === 'DELETE') {
             formattedResult = {
               affectedRows: result.count || 0,
               message: `${queryType} operation completed successfully`
             };
+            console.log(`📝 ${queryType} affected ${formattedResult.affectedRows} rows`);
           } else {
             formattedResult = {
               message: `${queryType} operation completed successfully`,
               result: result
             };
+            console.log(`🔧 ${queryType} operation completed`);
           }
 
-          return {
+          const response = {
             success: true,
             data: formattedResult,
             query,
@@ -171,19 +184,25 @@ export function executeSql({ session }: { session: Session }) {
             timestamp: new Date().toISOString()
           };
 
+          console.log('✅ SQL Tool Success:', JSON.stringify(response, null, 2));
+          return response;
+
         } catch (dbError: any) {
           await client.end();
+          console.log('❌ Database Error:', dbError.message);
           throw dbError;
         }
 
       } catch (error: any) {
-        return {
+        const errorResponse = {
           success: false,
           error: `Database error: ${error.message}`,
           query,
           explanation,
           timestamp: new Date().toISOString()
         };
+        console.log('❌ SQL Tool Error:', JSON.stringify(errorResponse, null, 2));
+        return errorResponse;
       }
     },
   });

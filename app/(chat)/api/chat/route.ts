@@ -147,6 +147,14 @@ export async function POST(request: Request) {
 
     const stream = createDataStream({
       execute: (dataStream) => {
+        console.log('🤖 Starting AI chat with tools:', [
+          'getWeather',
+          'createDocument', 
+          'updateDocument',
+          'requestSuggestions',
+          'executeSql'
+        ]);
+        
         const result = streamText({
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
@@ -174,7 +182,19 @@ export async function POST(request: Request) {
             }),
             executeSql: executeSql({ session }),
           },
-          onFinish: async ({ response }) => {
+          onStepFinish: ({ stepType, toolCalls, toolResults }) => {
+            if (toolCalls && toolCalls.length > 0) {
+              console.log('🔧 TOOL STEP DETECTED!');
+              console.log('📞 Tool calls:', toolCalls?.map(tc => tc.toolName));
+              console.log('📊 Tool results count:', toolResults?.length);
+            }
+          },
+          onFinish: async ({ response, toolCalls, toolResults }) => {
+            console.log('🏁 Chat finished');
+            if (toolCalls && toolCalls.length > 0) {
+              console.log('🔧 Tools used in this conversation:', toolCalls.map(tc => tc.toolName));
+            }
+            
             if (session.user?.id) {
               try {
                 const assistantId = getTrailingMessageId({
