@@ -17,7 +17,6 @@ export const myProvider = isTestEnvironment
       languageModels: {
         'chat-model': chatModel,
         'chat-model-reasoning': reasoningModel,
-        'langchain-cot': reasoningModel,
         'title-model': titleModel,
         'artifact-model': artifactModel,
       },
@@ -26,7 +25,6 @@ export const myProvider = isTestEnvironment
       languageModels: {
         'chat-model': openai('gpt-4o-mini'),
         'chat-model-reasoning': openai('gpt-4o-mini'),
-        'langchain-cot': openai('gpt-4o-mini'),
         'title-model': openai('gpt-4o-mini'),
         'artifact-model': openai('gpt-4o-mini'),
       },

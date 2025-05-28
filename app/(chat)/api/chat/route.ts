@@ -39,9 +39,6 @@ import { differenceInSeconds } from 'date-fns';
 import { ChatSDKError } from '@/lib/errors';
 import { getDatabaseSchema } from '@/lib/ai/tools/get-database-schema';
 import { getTableSchema } from '@/lib/ai/tools/get-table-schema';
-import { ChatOpenAI } from "@langchain/openai";
-import { PromptTemplate } from "@langchain/core/prompts";
-import { LLMChain } from "langchain/chains";
 
 export const maxDuration = 60;
 
@@ -84,34 +81,6 @@ export async function POST(request: Request) {
 
     if (!session?.user) {
       return new ChatSDKError('unauthorized:chat').toResponse();
-    }
-
-    // --- LangChain Chain-of-Thought Integration ---
-    if (selectedChatModel === 'langchain-cot') {
-      try {
-        // 1. Build a CoT prompt
-        const prompt = PromptTemplate.fromTemplate(`You are a reasoning assistant. Think step by step.\nQuestion: {input}\nLet's think step by step.`);
-        // 2. Create a chain
-        const chain = new LLMChain({
-          llm: new ChatOpenAI({
-            modelName: "gpt-4o-mini",
-            openAIApiKey: process.env.OPENAI_API_KEY,
-          }),
-          prompt,
-        });
-        // 3. Call the chain
-        const userInput = message?.parts?.[0]?.text || '';
-        const chainResult = await chain.call({ input: userInput });
-        // 4. Return the reasoning steps as a response
-        return Response.json({
-          reasoning: chainResult.text,
-          steps: chainResult.text.split(/\n|\r/).filter(Boolean),
-          model: 'langchain-cot',
-        });
-      } catch (error) {
-        console.error('LangChain error:', error);
-        return new ChatSDKError('bad_request:api').toResponse();
-      }
     }
 
     const userType: UserType = session.user.type;
