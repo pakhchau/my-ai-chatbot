@@ -131,8 +131,9 @@ export function executeSql({ session }: { session: Session }) {
 
         // Substitute 'userId' placeholder with actual user ID
         let processedQuery = query.replace(/'userId'/g, `'${actualUserId}'`);
-        processedQuery = processedQuery.replace(/"userId"/g, `"${actualUserId}"`);
-        processedQuery = processedQuery.replace(/userId/g, `'${actualUserId}'`);
+        // Don't replace "userId" in column names - only replace when it's a value
+        // processedQuery = processedQuery.replace(/"userId"/g, `"${actualUserId}"`);
+        // processedQuery = processedQuery.replace(/userId/g, `'${actualUserId}'`);
         
         // For queries that don't have explicit user filtering, add it automatically for user-specific tables
         const userSpecificTables = ['Chat', 'Task', 'Document', 'Message_v2', 'Vote_v2', 'Suggestion', 'AITrigger'];
