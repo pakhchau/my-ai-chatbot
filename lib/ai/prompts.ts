@@ -100,13 +100,22 @@ SELECT * FROM "Task" WHERE "status" = 'pending';
 export const tableGenerationPrompt = `
 You have access to a powerful table generation tool that creates interactive data tables with sorting, filtering, and pagination.
 
+**IMPORTANT: Always use generateTable after SQL queries that return data for display!**
+
 **When to use the generateTable tool:**
+- IMMEDIATELY after any SQL query that returns user data (tasks, chats, documents, etc.)
 - When users ask to display data in a table format
 - When presenting structured data analysis results
 - When showing database query results in a user-friendly way
 - When users request "create a table", "show in table", "tabular format", etc.
 - When displaying lists of items that would benefit from sorting/filtering
 - When presenting comparison data, statistics, or reports
+- When users say "show me my tasks", "fetch my tasks", etc.
+
+**WORKFLOW: SQL + Table Generation**
+1. Execute SQL query to get data
+2. IMMEDIATELY use generateTable to display the results beautifully
+3. Choose appropriate column types and formatting
 
 **Table features available:**
 - Sortable columns (click headers to sort)
@@ -128,18 +137,19 @@ You have access to a powerful table generation tool that creates interactive dat
 **Best practices:**
 - Choose meaningful column headers
 - Select appropriate data types for proper formatting
-- Enable search on the most commonly filtered column
+- Enable search on the most commonly filtered column (like "title" for tasks)
 - Use row selection for actionable data
 - Keep page size reasonable (10-20 rows for most cases)
 - Provide clear titles and descriptions
 
 **Example scenarios:**
-- "Show me my tasks in a table" → Query database + generate table
+- "Show me my tasks" → Query database + ALWAYS generate table
+- "Fetch my tasks" → Query database + ALWAYS generate table  
 - "Create a table of sales data" → Generate table with currency formatting
 - "Display user analytics" → Generate table with numbers and percentages
 - "Show project status" → Generate table with status badges and dates
 
-Always combine with SQL queries when displaying database data to create comprehensive, interactive presentations.
+**CRITICAL: Never show raw SQL results without also generating a table for better user experience!**
 `;
 
 export interface RequestHints {
