@@ -166,7 +166,7 @@ export async function POST(request: Request) {
           model: myProvider.languageModel(selectedChatModel),
           system: systemPrompt({ selectedChatModel, requestHints }),
           messages,
-          maxSteps: 5,
+          maxSteps: 10,
           experimental_transform: smoothStream({ chunking: 'word' }),
           experimental_generateMessageId: generateUUID,
           tools: {
@@ -188,6 +188,19 @@ export async function POST(request: Request) {
               console.log('🔧 TOOL STEP DETECTED!');
               console.log('📞 Tool calls:', toolCalls?.map(tc => tc.toolName));
               console.log('📊 Tool results count:', toolResults?.length);
+              console.log('🔄 Step type:', stepType);
+              
+              // Log if this was a successful SQL query that should trigger table generation
+              const sqlCalls = toolCalls.filter(tc => tc.toolName === 'executeSql');
+              if (sqlCalls.length > 0 && toolResults) {
+                const sqlResults = toolResults.filter(tr => tr.toolName === 'executeSql');
+                sqlResults.forEach(result => {
+                  if (result.result?.success && 'data' in result.result && result.result.data?.rowCount && result.result.data.rowCount > 0) {
+                    console.log('🚨 SUCCESSFUL SQL QUERY WITH DATA - SHOULD TRIGGER TABLE GENERATION!');
+                    console.log('📊 Rows returned:', result.result.data.rowCount);
+                  }
+                });
+              }
             }
           },
           onFinish: async ({ response, toolCalls, toolResults }) => {
