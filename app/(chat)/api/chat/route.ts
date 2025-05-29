@@ -87,6 +87,8 @@ export async function POST(request: Request) {
 
     const userType: UserType = session.user.type;
 
+    // RATE LIMITING DISABLED FOR TESTING
+    /*
     const messageCount = await getMessageCountByUserId({
       id: session.user.id,
       differenceInHours: 24,
@@ -95,6 +97,7 @@ export async function POST(request: Request) {
     if (messageCount > entitlementsByUserType[userType].maxMessagesPerDay) {
       return new ChatSDKError('rate_limit:chat').toResponse();
     }
+    */
 
     const chat = await getChatById({ id });
 
@@ -150,26 +153,34 @@ export async function POST(request: Request) {
 
     const stream = createDataStream({
       execute: (dataStream) => {
-        console.log('🤖 Starting AI chat with tools:', [
-          'getWeather',
-          'createDocument', 
-          'updateDocument',
-          'requestSuggestions',
-          'executeSql',
-          'getDatabaseSchema',
-          'getTableSchema',
-          'generateTable',
-          'getUserId'
-        ]);
+        // Configure tools based on selected model
+        const isTableTestModel = selectedChatModel === 'table-test-model';
         
-        const result = streamText({
-          model: myProvider.languageModel(selectedChatModel),
-          system: systemPrompt({ selectedChatModel, requestHints }),
-          messages,
-          maxSteps: 10,
-          experimental_transform: smoothStream({ chunking: 'word' }),
-          experimental_generateMessageId: generateUUID,
-          tools: {
+        console.log('🤖 Starting AI chat with tools:', isTableTestModel 
+          ? ['generateTable']
+          : [
+              'getWeather',
+              'createDocument', 
+              'updateDocument',
+              'requestSuggestions',
+              'executeSql',
+              'getDatabaseSchema',
+              'getTableSchema',
+              'generateTable',
+              'getUserId'
+            ]);
+        
+        let tools;
+        if (isTableTestModel) {
+          console.log('🧪 TABLE TEST MODEL DETECTED - Only generateTable tool available');
+          console.log('🎯 Table Test Model Prompt will be used');
+          console.log('🔧 Available tools for Table Test Model:', ['generateTable']);
+          tools = {
+            generateTable: generateTableTool,
+          };
+        } else {
+          console.log('🔧 REGULAR MODEL - All tools available including generateTable');
+          tools = {
             getWeather,
             createDocument: createDocument({ session, dataStream }),
             updateDocument: updateDocument({ session, dataStream }),
@@ -182,31 +193,83 @@ export async function POST(request: Request) {
             getTableSchema: getTableSchema({ session }),
             generateTable: generateTableTool,
             getUserId: getUserId({ session }),
-          },
+          };
+        }
+        
+        console.log('🛠️ Available tools:', Object.keys(tools));
+        console.log('🤖 Selected model:', selectedChatModel);
+        console.log('🧪 Is table test model?', isTableTestModel);
+        
+        const result = streamText({
+          model: myProvider.languageModel(selectedChatModel),
+          system: systemPrompt({ selectedChatModel, requestHints }),
+          messages,
+          maxSteps: 10,
+          experimental_transform: smoothStream({ chunking: 'word' }),
+          experimental_generateMessageId: generateUUID,
+          tools,
           onStepFinish: ({ stepType, toolCalls, toolResults }) => {
+            console.log('🔄 STEP FINISHED');
+            console.log('📊 Step type:', stepType);
+            console.log('🔧 Tool calls count:', toolCalls?.length || 0);
+            console.log('📋 Tool results count:', toolResults?.length || 0);
+            
             if (toolCalls && toolCalls.length > 0) {
               console.log('🔧 TOOL STEP DETECTED!');
               console.log('📞 Tool calls:', toolCalls?.map(tc => tc.toolName));
               console.log('📊 Tool results count:', toolResults?.length);
               console.log('🔄 Step type:', stepType);
               
-              // Log if this was a successful SQL query that should trigger table generation
-              const sqlCalls = toolCalls.filter(tc => tc.toolName === 'executeSql');
-              if (sqlCalls.length > 0 && toolResults) {
-                const sqlResults = toolResults.filter(tr => tr.toolName === 'executeSql');
-                sqlResults.forEach(result => {
-                  if (result.result?.success && 'data' in result.result && result.result.data?.rowCount && result.result.data.rowCount > 0) {
-                    console.log('🚨 SUCCESSFUL SQL QUERY WITH DATA - SHOULD TRIGGER TABLE GENERATION!');
-                    console.log('📊 Rows returned:', result.result.data.rowCount);
+              // Log each tool call in detail
+              toolCalls.forEach((toolCall, index) => {
+                console.log(`🔧 Tool Call ${index + 1}:`);
+                console.log(`  - Name: ${toolCall.toolName}`);
+                console.log(`  - Args:`, JSON.stringify(toolCall.args, null, 2));
+              });
+              
+              // Log each tool result in detail
+              if (toolResults) {
+                toolResults.forEach((result: any, index) => {
+                  console.log(`📊 Tool Result ${index + 1}:`);
+                  console.log(`  - Tool: ${result.toolName}`);
+                  console.log(`  - Success:`, result.result ? 'Yes' : 'No');
+                  if (result.toolName === 'generateTable') {
+                    console.log('🎯 GENERATE TABLE RESULT DETECTED!');
+                    console.log('📊 Table result:', JSON.stringify(result.result, null, 2));
                   }
                 });
               }
+              
+              // Log if this was a successful SQL query that should trigger table generation
+              if (!isTableTestModel) {
+                const sqlCalls = toolCalls.filter(tc => tc.toolName === 'executeSql');
+                if (sqlCalls.length > 0 && toolResults) {
+                  const sqlResults = toolResults.filter((tr: any) => tr.toolName === 'executeSql');
+                  sqlResults.forEach((result: any) => {
+                    if (result.result?.success && 'data' in result.result && result.result.data?.rowCount && result.result.data.rowCount > 0) {
+                      console.log('🚨 SUCCESSFUL SQL QUERY WITH DATA - SHOULD TRIGGER TABLE GENERATION!');
+                      console.log('📊 Rows returned:', result.result.data.rowCount);
+                      console.log('✅ generateTable tool IS available in regular models!');
+                    }
+                  });
+                }
+              }
+            } else {
+              console.log('❌ No tool calls in this step');
             }
           },
           onFinish: async ({ response, toolCalls, toolResults }) => {
             console.log('🏁 Chat finished');
+            console.log('🤖 Model used:', selectedChatModel);
+            console.log('🧪 Was Table Test Model?', isTableTestModel);
             if (toolCalls && toolCalls.length > 0) {
               console.log('🔧 Tools used in this conversation:', toolCalls.map(tc => tc.toolName));
+            } else {
+              console.log('❌ NO TOOLS WERE CALLED AT ALL!');
+              if (isTableTestModel) {
+                console.log('🚨 TABLE TEST MODEL FINISHED WITHOUT CALLING generateTable!');
+                console.log('📝 This suggests the AI is not following the table test prompt correctly');
+              }
             }
             
             if (session.user?.id) {

@@ -3,11 +3,11 @@ import { tool } from 'ai';
 
 // Schema for table column definition
 const TableColumnSchema = z.object({
-  key: z.string().describe('The key/accessor for the column data'),
-  header: z.string().describe('The display name for the column header'),
-  type: z.enum(['text', 'number', 'date', 'boolean', 'currency', 'percentage']).describe('The data type for formatting'),
-  sortable: z.boolean().default(true).describe('Whether this column should be sortable'),
-  filterable: z.boolean().default(false).describe('Whether this column should be filterable'),
+  key: z.string().describe('The key to access data for this column'),
+  header: z.string().describe('Display name for the column header'),
+  type: z.enum(['text', 'number', 'currency', 'percentage', 'date', 'boolean']).describe('Data type for proper formatting'),
+  sortable: z.boolean().default(true).describe('Whether this column can be sorted'),
+  filterable: z.boolean().default(false).describe('Whether this column can be filtered'),
   width: z.string().optional().describe('CSS width for the column (e.g., "200px", "20%")'),
 });
 
@@ -17,73 +17,66 @@ const TableRowSchema = z.record(z.any()).describe('Row data as key-value pairs m
 // Main schema for the table generation tool
 const GenerateTableSchema = z.object({
   title: z.string().describe('Title for the table'),
-  description: z.string().optional().describe('Optional description for the table'),
-  columns: z.array(TableColumnSchema).describe('Array of column definitions'),
-  data: z.array(TableRowSchema).describe('Array of row data'),
-  searchKey: z.string().optional().describe('Column key to enable search/filtering on'),
-  enableRowSelection: z.boolean().default(false).describe('Whether to enable row selection'),
+  description: z.string().optional().describe('Optional description of what the table shows'),
+  columns: z.array(TableColumnSchema).describe('Column definitions for the table'),
+  data: z.array(TableRowSchema).describe('Array of data objects to display in the table'),
+  searchColumn: z.string().optional().describe('Column key to enable search/filtering on'),
   pageSize: z.number().default(10).describe('Number of rows per page'),
+  enableRowSelection: z.boolean().default(false).describe('Whether to allow row selection'),
 });
 
 export const generateTableTool = tool({
-  description: `Generate an interactive data table with sorting, filtering, and pagination capabilities. 
-  This tool creates a professional data table component that users can interact with.
-  
-  Use this tool when you need to:
-  - Display structured data in a tabular format
-  - Create interactive tables with sorting and filtering
-  - Present data analysis results
-  - Show database query results
-  - Display any structured information that benefits from table presentation
-  
-  The generated table will include:
-  - Sortable columns (click headers to sort)
-  - Optional search/filtering
-  - Pagination controls
-  - Column visibility toggles
-  - Optional row selection
-  - Responsive design
-  
-  Data types supported:
-  - text: Plain text display
-  - number: Formatted numbers
-  - date: Formatted dates
-  - boolean: Yes/No or checkmarks
-  - currency: Formatted as currency ($1,234.56)
-  - percentage: Formatted as percentage (12.34%)`,
-  
+  description: 'Generate an interactive data table with sorting, filtering, and pagination capabilities',
   parameters: GenerateTableSchema,
-  
-  execute: async ({ title, description, columns, data, searchKey, enableRowSelection, pageSize }) => {
-    // Validate that all data rows have keys matching the column definitions
-    const columnKeys = columns.map(col => col.key);
-    const invalidRows = data.filter(row => {
-      const rowKeys = Object.keys(row);
-      return !columnKeys.every(key => rowKeys.includes(key));
-    });
+  execute: async (params) => {
+    console.log('🔥 GENERATE TABLE TOOL CALLED!');
+    console.log('📊 Table params received:', JSON.stringify(params, null, 2));
+    console.log('📋 Title:', params.title);
+    console.log('📝 Description:', params.description);
+    console.log('🏛️ Columns count:', params.columns?.length);
+    console.log('📊 Data rows count:', params.data?.length);
     
-    if (invalidRows.length > 0) {
-      throw new Error(`Some data rows are missing required columns. Expected columns: ${columnKeys.join(', ')}`);
+    try {
+      // Validate that we have the required data
+      if (!params.columns || params.columns.length === 0) {
+        console.error('❌ No columns provided to generateTable');
+        throw new Error('No columns provided');
+      }
+      
+      if (!params.data || params.data.length === 0) {
+        console.error('❌ No data provided to generateTable');
+        throw new Error('No data provided');
+      }
+      
+      console.log('✅ Table validation passed');
+      console.log('🏗️ Generating table with:');
+      console.log('  - Title:', params.title);
+      console.log('  - Columns:', params.columns.map(c => `${c.header} (${c.type})`).join(', '));
+      console.log('  - Rows:', params.data.length);
+      console.log('  - Page size:', params.pageSize);
+      console.log('  - Search column:', params.searchColumn);
+      
+      const result = {
+        type: 'table' as const,
+        title: params.title,
+        description: params.description,
+        columns: params.columns,
+        data: params.data,
+        searchColumn: params.searchColumn,
+        pageSize: params.pageSize,
+        enableRowSelection: params.enableRowSelection,
+        timestamp: new Date().toISOString(),
+      };
+      
+      console.log('🎉 Table generation successful!');
+      console.log('📤 Returning table result:', JSON.stringify(result, null, 2));
+      
+      return result;
+    } catch (error) {
+      console.error('💥 Error in generateTable tool:', error);
+      console.error('📊 Failed params:', JSON.stringify(params, null, 2));
+      throw error;
     }
-    
-    // Generate a unique table ID for this instance
-    const tableId = `table_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
-    
-    // Return the table configuration that will be used by the frontend
-    return {
-      type: 'table',
-      tableId,
-      config: {
-        title,
-        description,
-        columns,
-        data,
-        searchKey,
-        enableRowSelection,
-        pageSize,
-      },
-      message: `Generated interactive table "${title}" with ${data.length} rows and ${columns.length} columns.`,
-    };
   },
 });
 

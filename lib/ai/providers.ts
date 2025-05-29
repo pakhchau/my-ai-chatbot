@@ -19,6 +19,7 @@ export const myProvider = isTestEnvironment
         'chat-model-reasoning': reasoningModel,
         'title-model': titleModel,
         'artifact-model': artifactModel,
+        'table-test-model': chatModel,
       },
     })
   : customProvider({
@@ -27,5 +28,6 @@ export const myProvider = isTestEnvironment
         'chat-model-reasoning': openai('gpt-4o-mini'),
         'title-model': openai('gpt-4o-mini'),
         'artifact-model': openai('gpt-4o-mini'),
+        'table-test-model': openai('gpt-4o-mini'),
       },
     });

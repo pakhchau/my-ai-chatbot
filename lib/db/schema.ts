@@ -15,9 +15,30 @@ export const user = pgTable('User', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   email: varchar('email', { length: 64 }).notNull(),
   password: varchar('password', { length: 64 }),
-});
+  role: varchar('role', { length: 20 }).notNull().default('member'), // 'admin' or 'member'
+  invitedBy: uuid('invitedBy'),
+  invitedAt: timestamp('invitedAt'),
+  isActive: boolean('isActive').notNull().default(true),
+}, (table) => ({
+  invitedByRef: foreignKey({
+    columns: [table.invitedBy],
+    foreignColumns: [table.id],
+  }),
+}));
 
 export type User = InferSelectModel<typeof user>;
+
+export const emailWhitelist = pgTable('EmailWhitelist', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  email: varchar('email', { length: 64 }).notNull().unique(),
+  invitedBy: uuid('invitedBy')
+    .notNull()
+    .references(() => user.id),
+  createdAt: timestamp('createdAt').notNull().defaultNow(),
+});
+
+export type EmailWhitelist = InferSelectModel<typeof emailWhitelist>;
+export type NewEmailWhitelist = InferInsertModel<typeof emailWhitelist>;
 
 export const chat = pgTable('Chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
