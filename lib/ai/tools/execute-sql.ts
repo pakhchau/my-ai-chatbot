@@ -118,14 +118,47 @@ export function executeSql({ session }: { session: Session }) {
       console.log('👤 User ID:', session.user?.id);
       
       try {
-        // Validate the SQL query
-        const validation = validateSQLQuery(query);
+        // Get the actual logged-in user ID
+        const actualUserId = session.user?.id;
+        if (!actualUserId) {
+          return {
+            success: false,
+            error: 'No authenticated user found',
+            query,
+            explanation
+          };
+        }
+
+        // Substitute 'userId' placeholder with actual user ID
+        let processedQuery = query.replace(/'userId'/g, `'${actualUserId}'`);
+        processedQuery = processedQuery.replace(/"userId"/g, `"${actualUserId}"`);
+        processedQuery = processedQuery.replace(/userId/g, `'${actualUserId}'`);
+        
+        // For queries that don't have explicit user filtering, add it automatically for user-specific tables
+        const userSpecificTables = ['Chat', 'Task', 'Document', 'Message_v2', 'Vote_v2', 'Suggestion', 'AITrigger'];
+        const upperQuery = processedQuery.toUpperCase();
+        
+        // Auto-add user filtering for SELECT queries on user-specific tables if not already present
+        if (upperQuery.startsWith('SELECT') && !upperQuery.includes('WHERE')) {
+          for (const table of userSpecificTables) {
+            if (upperQuery.includes(`"${table.toUpperCase()}"`)) {
+              processedQuery += ` WHERE "userId" = '${actualUserId}'`;
+              console.log('🔒 Auto-added user filtering for security');
+              break;
+            }
+          }
+        }
+
+        console.log('🔄 Processed Query:', processedQuery);
+
+        // Validate the processed SQL query
+        const validation = validateSQLQuery(processedQuery);
         if (!validation.isValid) {
           console.log('❌ SQL Validation Failed:', validation.error);
           return {
             success: false,
             error: `SQL validation failed: ${validation.error}`,
-            query,
+            query: processedQuery,
             explanation
           };
         }
@@ -144,8 +177,8 @@ export function executeSql({ session }: { session: Session }) {
 
         try {
           console.log('🔌 Executing SQL query...');
-          // Execute the query
-          result = await client.unsafe(query);
+          // Execute the processed query
+          result = await client.unsafe(processedQuery);
           
           const executionTime = Date.now() - startTime;
           console.log(`⚡ Query executed in ${executionTime}ms`);
@@ -154,7 +187,7 @@ export function executeSql({ session }: { session: Session }) {
           await client.end();
 
           // Format result based on query type
-          const queryType = query.trim().toUpperCase().split(' ')[0];
+          const queryType = processedQuery.trim().toUpperCase().split(' ')[0];
           
           let formattedResult;
           if (queryType === 'SELECT') {
@@ -180,7 +213,7 @@ export function executeSql({ session }: { session: Session }) {
           const response = {
             success: true,
             data: formattedResult,
-            query,
+            query: processedQuery, // Return the processed query
             explanation,
             executionTime: `${executionTime}ms`,
             queryType,
