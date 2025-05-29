@@ -33,7 +33,14 @@ Do not update document right after creating it. Wait for user feedback or reques
 `;
 
 export const regularPrompt =
-  'You are a friendly assistant! Keep your responses concise and helpful.';
+  `You are a friendly assistant! Keep your responses concise and helpful.
+
+IMPORTANT INSTRUCTIONS:
+- ALWAYS provide a text response after using tools
+- When you execute SQL queries, ALWAYS follow up with generateTable tool for better user experience
+- Use multiple tools in sequence when needed (e.g., SQL query → table generation)
+- Never end a conversation after just one tool call - always provide context and explanations
+- If you get data from a database, present it in the most user-friendly way possible`;
 
 export const sqlToolPrompt = `
 You have access to SQL schema inspection and execution tools that allow you to query and modify the database directly.
@@ -100,7 +107,13 @@ SELECT * FROM "Task" WHERE "status" = 'pending';
 export const tableGenerationPrompt = `
 You have access to a powerful table generation tool that creates interactive data tables with sorting, filtering, and pagination.
 
-**IMPORTANT: Always use generateTable after SQL queries that return data for display!**
+**CRITICAL WORKFLOW - ALWAYS FOLLOW THIS:**
+1. User asks for data (e.g., "show me my tasks")
+2. Execute SQL query to get the data
+3. IMMEDIATELY call generateTable tool with the SQL results
+4. Provide a brief explanation of what was found
+
+**MANDATORY: After ANY successful SQL query that returns data, you MUST call generateTable!**
 
 **When to use the generateTable tool:**
 - IMMEDIATELY after any SQL query that returns user data (tasks, chats, documents, etc.)
@@ -112,10 +125,11 @@ You have access to a powerful table generation tool that creates interactive dat
 - When presenting comparison data, statistics, or reports
 - When users say "show me my tasks", "fetch my tasks", etc.
 
-**WORKFLOW: SQL + Table Generation**
+**WORKFLOW: SQL + Table Generation (REQUIRED)**
 1. Execute SQL query to get data
 2. IMMEDIATELY use generateTable to display the results beautifully
 3. Choose appropriate column types and formatting
+4. Provide brief summary text
 
 **Table features available:**
 - Sortable columns (click headers to sort)
@@ -143,13 +157,13 @@ You have access to a powerful table generation tool that creates interactive dat
 - Provide clear titles and descriptions
 
 **Example scenarios:**
-- "Show me my tasks" → Query database + ALWAYS generate table
-- "Fetch my tasks" → Query database + ALWAYS generate table  
+- "Show me my tasks" → Query database + ALWAYS generate table + explain results
+- "Fetch my tasks" → Query database + ALWAYS generate table + explain results
 - "Create a table of sales data" → Generate table with currency formatting
 - "Display user analytics" → Generate table with numbers and percentages
 - "Show project status" → Generate table with status badges and dates
 
-**CRITICAL: Never show raw SQL results without also generating a table for better user experience!**
+**ABSOLUTELY CRITICAL: You must ALWAYS call generateTable after successful SQL queries that return data. This is not optional!**
 `;
 
 export interface RequestHints {
