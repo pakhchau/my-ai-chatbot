@@ -25,6 +25,7 @@ import { requestSuggestions } from '@/lib/ai/tools/request-suggestions';
 import { getWeather } from '@/lib/ai/tools/get-weather';
 import { executeSql } from '@/lib/ai/tools/execute-sql';
 import { generateTableTool } from '@/lib/ai/tools/generate-table';
+import { getUserId } from '@/lib/ai/tools/get-user-id';
 import { isProductionEnvironment } from '@/lib/constants';
 import { myProvider } from '@/lib/ai/providers';
 import { entitlementsByUserType } from '@/lib/ai/entitlements';
@@ -157,7 +158,8 @@ export async function POST(request: Request) {
           'executeSql',
           'getDatabaseSchema',
           'getTableSchema',
-          'generateTable'
+          'generateTable',
+          'getUserId'
         ]);
         
         const result = streamText({
@@ -179,6 +181,7 @@ export async function POST(request: Request) {
             getDatabaseSchema: getDatabaseSchema({ session }),
             getTableSchema: getTableSchema({ session }),
             generateTable: generateTableTool,
+            getUserId: getUserId({ session }),
           },
           onStepFinish: ({ stepType, toolCalls, toolResults }) => {
             if (toolCalls && toolCalls.length > 0) {
